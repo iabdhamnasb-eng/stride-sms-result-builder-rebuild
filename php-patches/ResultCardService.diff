@@ -1,0 +1,13 @@
+--- /Users/abumarwah/Documents/Technyon/Coding/result-builder-page/php-patches/ResultCardService.original.php	2026-08-01 20:57:01
++++ /Users/abumarwah/Documents/Technyon/Coding/result-generation/app/Services/ResultCardService.php	2026-08-01 20:57:05
+@@ -79,6 +79,10 @@
+         $vars    = $this->buildVariables($student, $term);
+         $entries = $this->loadGradeEntries($student, $term);
+         $html    = $compiledHtml;
++
++        // Split and style any variables configured with line formatting
++        // (data-lines / data-words-per-line / data-line-{n}-* attributes).
++        $html = \App\Services\ResultVariableFormatting::apply($html, $vars);
+ 
+         // Inject dynamic HTML blocks first
+         $html = str_replace('{{SCORES_TABLE}}',       $this->buildScoresTable($entries), $html);

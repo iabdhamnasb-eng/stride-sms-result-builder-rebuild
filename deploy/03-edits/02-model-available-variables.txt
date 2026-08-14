@@ -1,0 +1,19 @@
+OPTIONAL — add only the keys that are NOT already present in the model's
+availableVariables(). These power the variables dropdown and let templates
+reference the new variable names.
+
+File: app/Models/ResultTemplate.php
+
+────────────────────────────────────────────────────────────────────────
+Inside availableVariables(), append any missing entries:
+
+    // School
+    '{{principal_name}}'    => 'Principal Name',
+    '{{head_teacher_name}}' => 'Head Teacher Name',
+    '{{school_stamp}}'      => 'School Stamp / Signature Image URL',
+    // Dates
+    '{{next_term_start_date}}' => 'Next Term Start Date',
+    '{{next_term_end_date}}'   => 'Next Term End Date',
+    '{{result_issue_date}}'    => 'Result Issue Date',
+    // Dynamic blocks
+    '{{GRADING_KEY}}' => 'Grading Key (alias of grading scale)',

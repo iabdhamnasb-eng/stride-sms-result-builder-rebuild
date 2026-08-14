@@ -1,0 +1,19 @@
+OPTIONAL — add only the keys that are NOT already present in
+buildVariables(). These supply the values for the new variable names.
+
+File: app/Services/ResultCardService.php
+
+────────────────────────────────────────────────────────────────────────
+Inside buildVariables() (add only keys not already present):
+
+    $nextTermDate  = SchoolConfig::getValue($school->id, 'general', 'next_term_date', '–');
+    $nextTermStart = SchoolConfig::getValue($school->id, 'general', 'next_term_start_date', $nextTermDate);
+    $nextTermEnd   = SchoolConfig::getValue($school->id, 'general', 'next_term_end_date', '–');
+    $resultIssue   = SchoolConfig::getValue($school->id, 'general', 'result_issue_date', now()->format('d M Y'));
+
+    '{{principal_name}}'    => SchoolConfig::getValue($school->id, 'general', 'principal_name', ''),
+    '{{head_teacher_name}}' => SchoolConfig::getValue($school->id, 'general', 'head_teacher_name', ''),
+    '{{school_stamp}}'      => SchoolConfig::getValue($school->id, 'general', 'school_stamp', ''),
+    '{{next_term_start_date}}' => $nextTermStart,
+    '{{next_term_end_date}}'   => $nextTermEnd,
+    '{{result_issue_date}}'    => $resultIssue,

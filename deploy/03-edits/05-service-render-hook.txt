@@ -1,0 +1,30 @@
+MANDATORY — this is the print-time hook that renders the "Line split &
+format" (data-lines / data-line-{n}-*) and the variable grid layouts.
+
+1) Copy 04-php/ResultVariableFormatting.php into
+   app/Services/ResultVariableFormatting.php (namespace App\Services —
+   the file is ready to use, no changes needed).
+
+2) File: app/Services/ResultCardService.php — in renderTemplate(), right
+   after the compiled HTML is loaded and BEFORE any {{placeholder}}
+   substitution loop:
+
+FIND:
+
+    $html    = $compiledHtml;
+
+REPLACE WITH:
+
+    $html    = $compiledHtml;
+
+    // Split and style any variables configured with line formatting
+    // (data-lines / data-words-per-line / data-line-{n}-* attributes).
+    $html = \App\Services\ResultVariableFormatting::apply($html, $vars);
+
+(The fully-qualified name needs no use statement. The exact context is in
+04-php/ResultCardService.diff — apply it with:  patch -p0 < ResultCardService.diff
+or edit manually as shown above.)
+
+IMPORTANT: this must run BEFORE the {{placeholder}} substitution loop. The
+renderer replaces each configured element's placeholder with its styled
+lines, so nothing is substituted twice.

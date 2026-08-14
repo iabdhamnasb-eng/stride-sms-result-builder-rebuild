@@ -1,0 +1,101 @@
+.rb-lines-trait { padding: 2px 0 6px; }
+    .rb-lines-trait .rb-lines-top { display: flex; gap: .6rem; margin-bottom: .6rem; }
+    .rb-lines-trait .rb-lines-field {
+        display: flex;
+        flex-direction: column;
+        gap: .2rem;
+        font-size: .68rem;
+        color: #64748b;
+        font-weight: 600;
+        flex: 1;
+        min-width: 0;
+    }
+    .rb-lines-trait .rb-lines-field input[type="number"],
+    .rb-lines-trait .rb-lines-field select {
+        border: 1.5px solid #e2e8f0;
+        border-radius: .35rem;
+        padding: .28rem .5rem;
+        font-size: .75rem;
+        font-family: inherit;
+        color: #1e293b;
+        background: #fff;
+        width: 100%;
+        outline: none;
+    }
+    .rb-lines-trait .rb-lines-field input[type="color"] {
+        width: 100%;
+        height: 1.65rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: .35rem;
+        padding: 2px;
+        background: #fff;
+        cursor: pointer;
+    }
+    .rb-lines-trait .rb-lines-field input:focus,
+    .rb-lines-trait .rb-lines-field select:focus { border-color: #3b82f6; }
+    .rb-lines-trait .rb-lines-list { border-top: 1px solid #e2e8f0; }
+    .rb-lines-trait .rb-lines-row { padding: .5rem 0 .65rem; border-bottom: 1px dashed #e2e8f0; }
+    .rb-lines-trait .rb-lines-row:last-child { border-bottom: none; }
+    .rb-lines-trait .rb-lines-row-head {
+        font-size: .65rem;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin-bottom: .4rem;
+    }
+    .rb-lines-trait .rb-lines-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem .6rem; }
+    .rb-lines-trait .rb-lines-wide { grid-column: 1 / -1; }
+
+    /* ── Move / align trait (Settings panel) ── */
+    .rb-position-trait { padding: 2px 0 6px; }
+    .rb-position-trait .rb-position-row { display: flex; gap: .35rem; }
+    .rb-position-trait .rb-pos-btn {
+        flex: 1;
+        border: 1.5px solid #e2e8f0;
+        background: #fff;
+        color: #475569;
+        border-radius: .35rem;
+        padding: .35rem 0;
+        font-size: .7rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .rb-position-trait .rb-pos-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
+
+    /* ── Grid layout trait (Settings panel) ── */
+    .rb-grid-trait { padding: 2px 0 6px; }
+    .rb-grid-trait .rb-grid-top {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: .6rem; font-size: .68rem; color: #64748b;
+    }
+    .rb-grid-trait .rb-grid-top label { display: flex; align-items: center; gap: .3rem; }
+    .rb-grid-trait .rb-grid-rows-input {
+        width: 3rem; padding: .2rem .35rem; font-size: .7rem;
+        border: 1px solid #cbd5e1; border-radius: .3rem; background: #fff; font-family: inherit;
+    }
+    .rb-grid-trait .rb-grid-rows-input:focus { border-color: #3b82f6; outline: none; }
+    .rb-grid-trait .rb-grid-row { display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .4rem; }
+    .rb-grid-trait .rb-grid-row:last-child { margin-bottom: 0; }
+    .rb-grid-trait .rb-grid-row-label { flex: 0 0 3.2rem; font-size: .68rem; color: #64748b; padding-top: .2rem; }
+    .rb-grid-trait .rb-grid-cols {
+        width: 3.4rem; padding: .2rem .35rem; font-size: .7rem;
+        border: 1px solid #cbd5e1; border-radius: .3rem; background: #fff; font-family: inherit;
+    }
+    .rb-grid-trait .rb-grid-cols:focus { border-color: #3b82f6; outline: none; }
+    .rb-grid-trait .rb-grid-diagram { display: grid; gap: 2px; flex: 1; }
+    .rb-grid-trait .rb-grid-cell {
+        border: 1px solid #94a3b8; border-radius: .2rem; background: #e2e8f0;
+        min-height: 1rem; padding: .1rem;
+    }
+    .rb-grid-trait .rb-grid-cell.is-col2 { background: #bfdbfe; border-color: #60a5fa; }
+    .rb-grid-trait .rb-grid-cell.is-col3 { background: #ddd6fe; border-color: #a78bfa; }
+    .rb-grid-trait .rb-grid-cell.is-col4 { background: #fecaca; border-color: #f87171; }
+    .rb-grid-trait .rb-grid-cell-label {
+        display: block; font-size: .58rem; color: #475569;
+        line-height: 1.25; text-align: center; word-break: break-all;
+    }
+
+    /* ── Editor wrapper ── */

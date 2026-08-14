@@ -1,0 +1,19 @@
+OPTIONAL — only needed if templates may use {{GRADING_KEY}} instead of
+{{GRADING_SCALE}}. Harmless alias; skip if GRADING_KEY is not used.
+
+File: app/Services/ResultCardService.php
+
+────────────────────────────────────────────────────────────────────────
+In renderTemplate(), replace the GRADING_SCALE line with the alias pair:
+
+FIND:
+
+    $html = str_replace('{{GRADING_SCALE}}', $gradingKey, $html);
+
+REPLACE WITH:
+
+    $html = str_replace('{{GRADING_SCALE}}', $gradingKey, $html);
+    $html = str_replace('{{GRADING_KEY}}',   $gradingKey, $html);
+
+(Keep the original str_replace line if it differs slightly; just append the
+GRADING_KEY line next to it.)

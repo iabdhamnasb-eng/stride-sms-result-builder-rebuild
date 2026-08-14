@@ -1,0 +1,39 @@
+OPTIONAL — cosmetic only. Makes the Style Manager match the reference build
+(editor gets a first-class "Position" sector; absolute/float controls appear
+in the Styles tab). Skip if you do not want to change the Styles tab.
+
+File: resources/views/builder/result-template.blade.php
+
+────────────────────────────────────────────────────────────────────────
+EDIT 1 of 2 — ALLOWED_STYLE_PROPS (add position/float to the allowed list)
+
+FIND (inside installResultBuilderFlexibility):
+
+            'border-style', 'border-radius', 'display', 'vertical-align'
+        ];
+
+REPLACE WITH:
+
+            'border-style', 'border-radius', 'display', 'vertical-align',
+            'position', 'top', 'left', 'right', 'bottom', 'float'
+        ];
+
+────────────────────────────────────────────────────────────────────────
+EDIT 2 of 2 — Style Manager sectors (insert a Position sector first)
+
+FIND:
+
+        editor.StyleManager.getSectors().reset([
+            {
+                name: 'Size & Position', open: true, buildProps: ['width', 'height', 'min-height', 'max-width', 'display', 'vertical-align']
+            },
+
+REPLACE WITH:
+
+        editor.StyleManager.getSectors().reset([
+            {
+                name: 'Position', open: true, buildProps: ['position', 'top', 'left', 'right', 'bottom', 'float']
+            },
+            {
+                name: 'Size & Position', open: true, buildProps: ['width', 'height', 'min-height', 'max-width', 'display', 'vertical-align']
+            },
