@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="mock-csrf-token">
+<title>Result Template Builder — Technyon Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/grapesjs@0.21.13/dist/css/grapes.min.css">
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #f1f5f9;
+        color: #1e293b;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+
+    /* Standalone test banner */
+    .test-banner {
+        background: #ecfdf5; color: #065f46; border-bottom: 1px solid #a7f3d0;
+        padding: .45rem 1rem; font-size: .78rem; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    }
+    .test-banner button {
+        border: 1px solid #10b981; background: #fff; color: #047857;
+        border-radius: .35rem; padding: .2rem .6rem; font-size: .72rem; cursor: pointer;
+    }
+    .btn-preview { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .btn-preview:hover { background: #d1fae5; border-color: #6ee7b7; }
+
+    /* ── Toolbar ── */
+    #toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        padding: .6rem 1rem;
+        flex-shrink: 0;
+        z-index: 10;
+    }
+
+    #toolbar .left, #toolbar .right { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+
+    #toolbar input[type="text"] {
+        border: 1.5px solid #e2e8f0;
+        border-radius: .4rem;
+        padding: .35rem .7rem;
+        font-size: .85rem;
+        font-family: inherit;
+        color: #1e293b;
+        width: 220px;
+        outline: none;
+    }
+    #toolbar input[type="text"]:focus { border-color: #3b82f6; }
+
+    #toolbar select {
+        border: 1.5px solid #e2e8f0;
+        border-radius: .4rem;
+        padding: .35rem .6rem;
+        font-size: .85rem;
+        font-family: inherit;
+        color: #1e293b;
+        background: #fff;
+        outline: none;
+        cursor: pointer;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .38rem .85rem;
+        border-radius: .4rem;
+        font-size: .82rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        border: 1.5px solid transparent;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: background .15s, border-color .15s, color .15s;
+    }
+    .btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-primary:disabled { background: #93c5fd; border-color: #93c5fd; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: #475569; border-color: #e2e8f0; }
+    .btn-ghost:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .btn-vars { background: #ede9fe; color: #6d28d9; border-color: #c4b5fd; }
+    .btn-vars:hover { background: #ddd6fe; }
+
+    /* ── Variables panel ── */
+    #vars-panel {
+        background: #faf5ff;
+        border-bottom: 1px solid #ddd6fe;
+        padding: .6rem 1rem;
+        flex-shrink: 0;
+        display: none;
+    }
+    #vars-panel.open { display: block; }
+    #vars-panel p { font-size: .75rem; color: #7c3aed; font-weight: 600; margin-bottom: .4rem; }
+    #vars-panel .pills { display: flex; flex-wrap: wrap; gap: .25rem; }
+    .var-pill {
+        display: inline-block;
+        background: #ede9fe;
+        color: #6d28d9;
+        border: 1px solid #c4b5fd;
+        border-radius: .25rem;
+        padding: 2px 7px;
+        font-size: .72rem;
+        font-family: monospace;
+        cursor: pointer;
+        user-select: all;
+        transition: background .1s;
+    }
+    .var-pill:hover { background: #ddd6fe; }
+    .copy-hint {
+        font-size: .7rem;
+        color: #a78bfa;
+        margin-left: .5rem;
+        display: none;
+    }
+
+    /* ── Status bar ── */
+    #statusbar {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        padding: .25rem 1rem;
+        font-size: .72rem;
+        color: #94a3b8;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    #status-msg { color: #64748b; }
+    #status-msg.saved { color: #16a34a; }
+    #status-msg.error { color: #dc2626; }
+
+    /* ── Line split & format trait (Settings panel) ── */
+    .rb-lines-trait { padding: 2px 0 6px; }
+    .rb-lines-trait .rb-lines-top { display: flex; gap: .6rem; margin-bottom: .6rem; }
+    .rb-lines-trait .rb-lines-field {
+        display: flex;
+        flex-direction: column;
+        gap: .2rem;
+        font-size: .68rem;
+        color: #64748b;
+        font-weight: 600;
+        flex: 1;
+        min-width: 0;
+    }
+    .rb-lines-trait .rb-lines-field input[type="number"],
+    .rb-lines-trait .rb-lines-field select {
+        border: 1.5px solid #e2e8f0;
+        border-radius: .35rem;
+        padding: .28rem .5rem;
+        font-size: .75rem;
+        font-family: inherit;
+        color: #1e293b;
+        background: #fff;
+        width: 100%;
+        outline: none;
+    }
+    .rb-lines-trait .rb-lines-field input[type="color"] {
+        width: 100%;
+        height: 1.65rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: .35rem;
+        padding: 2px;
+        background: #fff;
+        cursor: pointer;
+    }
+    .rb-lines-trait .rb-lines-field input:focus,
+    .rb-lines-trait .rb-lines-field select:focus { border-color: #3b82f6; }
+    .rb-lines-trait .rb-lines-list { border-top: 1px solid #e2e8f0; }
+    .rb-lines-trait .rb-lines-row { padding: .5rem 0 .65rem; border-bottom: 1px dashed #e2e8f0; }
+    .rb-lines-trait .rb-lines-row:last-child { border-bottom: none; }
+    .rb-lines-trait .rb-lines-row-head {
+        font-size: .65rem;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin-bottom: .4rem;
+    }
+    .rb-lines-trait .rb-lines-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem .6rem; }
+    .rb-lines-trait .rb-lines-wide { grid-column: 1 / -1; }
+
+    /* ── Move / align trait (Settings panel) ── */
+    .rb-position-trait { padding: 2px 0 6px; }
+    .rb-position-trait .rb-position-row { display: flex; gap: .35rem; }
+    .rb-position-trait .rb-pos-btn {
+        flex: 1;
+        border: 1.5px solid #e2e8f0;
+        background: #fff;
+        color: #475569;
+        border-radius: .35rem;
+        padding: .35rem 0;
+        font-size: .7rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .rb-position-trait .rb-pos-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
+
+    /* ── Grid layout trait (Settings panel) ── */
+    .rb-grid-trait { padding: 2px 0 6px; }
+    .rb-grid-trait .rb-grid-top {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: .6rem; font-size: .68rem; color: #64748b;
+    }
+    .rb-grid-trait .rb-grid-top label { display: flex; align-items: center; gap: .3rem; }
+    .rb-grid-trait .rb-grid-rows-input {
+        width: 3rem; padding: .2rem .35rem; font-size: .7rem;
+        border: 1px solid #cbd5e1; border-radius: .3rem; background: #fff; font-family: inherit;
+    }
+    .rb-grid-trait .rb-grid-rows-input:focus { border-color: #3b82f6; outline: none; }
+    .rb-grid-trait .rb-grid-row { display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .4rem; }
+    .rb-grid-trait .rb-grid-row:last-child { margin-bottom: 0; }
+    .rb-grid-trait .rb-grid-row-label { flex: 0 0 3.2rem; font-size: .68rem; color: #64748b; padding-top: .2rem; }
+    .rb-grid-trait .rb-grid-cols {
+        width: 3.4rem; padding: .2rem .35rem; font-size: .7rem;
+        border: 1px solid #cbd5e1; border-radius: .3rem; background: #fff; font-family: inherit;
+    }
+    .rb-grid-trait .rb-grid-cols:focus { border-color: #3b82f6; outline: none; }
+    .rb-grid-trait .rb-grid-diagram { display: grid; gap: 2px; flex: 1; }
+    .rb-grid-trait .rb-grid-cell {
+        border: 1px solid #94a3b8; border-radius: .2rem; background: #e2e8f0;
+        min-height: 1rem; padding: .1rem;
+    }
+    .rb-grid-trait .rb-grid-cell.is-col2 { background: #bfdbfe; border-color: #60a5fa; }
+    .rb-grid-trait .rb-grid-cell.is-col3 { background: #ddd6fe; border-color: #a78bfa; }
+    .rb-grid-trait .rb-grid-cell.is-col4 { background: #fecaca; border-color: #f87171; }
+    .rb-grid-trait .rb-grid-cell-label {
+        display: block; font-size: .58rem; color: #475569;
+        line-height: 1.25; text-align: center; word-break: break-all;
+    }
+
+    /* ── Editor wrapper ── */
+    #editor-wrap {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+    }
+
+    #gjs {
+        height: 100%;
+        width: 100%;
+    }
+
+    .gjs-editor { height: 100% !important; }
+    .gjs-frame-wrapper { background: #e5e7eb; }
+</style>
+</head>
+<body>
+<div class="test-banner">
+    <span><b>Preview mode</b> — hosted from your GitHub repo. Save stores drafts in this browser (localStorage); no server required.</span>
+    <button onclick="Object.keys(localStorage).filter(function(k){return k.indexOf('resulttpl_draft_')===0 || k==='mock_result_templates';}).forEach(function(k){localStorage.removeItem(k)});location.reload();">Reset test data</button>
+</div>
+
+<div id="toolbar">
+    <div class="left">
+        <input type="text" id="tpl-name"
+               value="My Result Template"
+               placeholder="Template name…">
+        <select id="paper-size">
+            <option value="A4" selected>A4</option>
+            <option value="Letter" >Letter</option>
+        </select>
+        <select id="orientation">
+            <option value="portrait" selected>Portrait</option>
+            <option value="landscape" >Landscape</option>
+        </select>
+        <button class="btn btn-vars" onclick="toggleVars()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+            Variables
+        </button>
+    </div>
+    <div class="right">
+        <button class="btn btn-preview" onclick="previewRendered()">Preview rendered</button>
+        <button class="btn btn-primary" id="save-btn" onclick="saveTemplate()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+            Save Template
+        </button>
+        <a href="#" class="btn btn-ghost">← Back</a>
+    </div>
+</div>
+
+
+<div id="vars-panel">
+    <p>Click a variable to copy it, then paste inside a Text block:</p>
+    <div class="pills">
+        <span class="var-pill" title="School Name" onclick="copyVar('{{school_name}}')">{{school_name}}</span>
+        <span class="var-pill" title="School Address" onclick="copyVar('{{school_address}}')">{{school_address}}</span>
+        <span class="var-pill" title="School Phone" onclick="copyVar('{{school_phone}}')">{{school_phone}}</span>
+        <span class="var-pill" title="School Email" onclick="copyVar('{{school_email}}')">{{school_email}}</span>
+        <span class="var-pill" title="School Motto" onclick="copyVar('{{school_motto}}')">{{school_motto}}</span>
+        <span class="var-pill" title="School Logo URL" onclick="copyVar('{{school_logo}}')">{{school_logo}}</span>
+        <span class="var-pill" title="Principal Name" onclick="copyVar('{{principal_name}}')">{{principal_name}}</span>
+        <span class="var-pill" title="Head Teacher Name" onclick="copyVar('{{head_teacher_name}}')">{{head_teacher_name}}</span>
+        <span class="var-pill" title="School Stamp / Signature Image URL" onclick="copyVar('{{school_stamp}}')">{{school_stamp}}</span>
+        <span class="var-pill" title="Student Full Name" onclick="copyVar('{{student_name}}')">{{student_name}}</span>
+        <span class="var-pill" title="Registration Number" onclick="copyVar('{{student_id}}')">{{student_id}}</span>
+        <span class="var-pill" title="Class Name" onclick="copyVar('{{student_class}}')">{{student_class}}</span>
+        <span class="var-pill" title="Arm / Stream" onclick="copyVar('{{student_arm}}')">{{student_arm}}</span>
+        <span class="var-pill" title="Gender" onclick="copyVar('{{student_gender}}')">{{student_gender}}</span>
+        <span class="var-pill" title="Date of Birth" onclick="copyVar('{{student_dob}}')">{{student_dob}}</span>
+        <span class="var-pill" title="Admission Date" onclick="copyVar('{{admission_date}}')">{{admission_date}}</span>
+        <span class="var-pill" title="Number of Subjects Offered" onclick="copyVar('{{subject_count}}')">{{subject_count}}</span>
+        <span class="var-pill" title="Academic Session (e.g. 2024/2025)" onclick="copyVar('{{session_name}}')">{{session_name}}</span>
+        <span class="var-pill" title="Term Name" onclick="copyVar('{{term_name}}')">{{term_name}}</span>
+        <span class="var-pill" title="Total Score" onclick="copyVar('{{total_score}}')">{{total_score}}</span>
+        <span class="var-pill" title="Average Score" onclick="copyVar('{{average_score}}')">{{average_score}}</span>
+        <span class="var-pill" title="Position in Class" onclick="copyVar('{{class_position}}')">{{class_position}}</span>
+        <span class="var-pill" title="Position Suffix (st/nd/rd/th)" onclick="copyVar('{{position_suffix}}')">{{position_suffix}}</span>
+        <span class="var-pill" title="Class Size" onclick="copyVar('{{class_size}}')">{{class_size}}</span>
+        <span class="var-pill" title="Next Term Resumption Date" onclick="copyVar('{{next_term_date}}')">{{next_term_date}}</span>
+        <span class="var-pill" title="Next Term Start Date" onclick="copyVar('{{next_term_start_date}}')">{{next_term_start_date}}</span>
+        <span class="var-pill" title="Next Term End Date" onclick="copyVar('{{next_term_end_date}}')">{{next_term_end_date}}</span>
+        <span class="var-pill" title="Date Printed" onclick="copyVar('{{date_issued}}')">{{date_issued}}</span>
+        <span class="var-pill" title="Result Issue Date" onclick="copyVar('{{result_issue_date}}')">{{result_issue_date}}</span>
+        <span class="var-pill" title="Subject Scores Table (auto-generated)" onclick="copyVar('{{SCORES_TABLE}}')">{{SCORES_TABLE}}</span>
+        <span class="var-pill" title="Attendance Summary (auto-generated)" onclick="copyVar('{{ATTENDANCE_SUMMARY}}')">{{ATTENDANCE_SUMMARY}}</span>
+        <span class="var-pill" title="Grading Scale Key (auto-generated)" onclick="copyVar('{{GRADING_SCALE}}')">{{GRADING_SCALE}}</span>
+        <span class="var-pill" title="Grading Key (alias of grading scale)" onclick="copyVar('{{GRADING_KEY}}')">{{GRADING_KEY}}</span>
+        <span class="var-pill" title="Teacher Remark" onclick="copyVar('{{teacher_remark}}')">{{teacher_remark}}</span>
+        <span class="var-pill" title="Principal Remark" onclick="copyVar('{{principal_remark}}')">{{principal_remark}}</span>
+        <span class="var-pill" title="Teacher Name" onclick="copyVar('{{teacher_name}}')">{{teacher_name}}</span>
+    </div>
+    <span class="copy-hint" id="copy-hint">Copied!</span>
+</div>
+
+
+<div id="statusbar">
+    <!--<span>GrapeJS Result Template Builder</span>-->
+    <span id="status-msg">Ready</span>
+</div>
+
+
+<div id="editor-wrap">
+    <div id="gjs"></div>
+</div>
+
+
+<script>
+    var BUILDER = {
+        templateId:  null,
+        schoolId:    1,
+        hasData:     false,
+        grapesJson:  null,
+        saveUrl:     '/builder/result-template/save',
+        uploadUrl:   '/builder/result-template/upload-image',
+        csrfToken:   'mock-csrf-token',
+        variables:   {"{{school_name}}": "School Name", "{{school_address}}": "School Address", "{{school_phone}}": "School Phone", "{{school_email}}": "School Email", "{{school_motto}}": "School Motto", "{{school_logo}}": "School Logo URL", "{{principal_name}}": "Principal Name", "{{head_teacher_name}}": "Head Teacher Name", "{{school_stamp}}": "School Stamp / Signature Image URL", "{{student_name}}": "Student Full Name", "{{student_id}}": "Registration Number", "{{student_class}}": "Class Name", "{{student_arm}}": "Arm / Stream", "{{student_gender}}": "Gender", "{{student_dob}}": "Date of Birth", "{{admission_date}}": "Admission Date", "{{subject_count}}": "Number of Subjects Offered", "{{session_name}}": "Academic Session (e.g. 2024/2025)", "{{term_name}}": "Term Name", "{{total_score}}": "Total Score", "{{average_score}}": "Average Score", "{{class_position}}": "Position in Class", "{{position_suffix}}": "Position Suffix (st/nd/rd/th)", "{{class_size}}": "Class Size", "{{next_term_date}}": "Next Term Resumption Date", "{{next_term_start_date}}": "Next Term Start Date", "{{next_term_end_date}}": "Next Term End Date", "{{date_issued}}": "Date Printed", "{{result_issue_date}}": "Result Issue Date", "{{SCORES_TABLE}}": "Subject Scores Table (auto-generated)", "{{ATTENDANCE_SUMMARY}}": "Attendance Summary (auto-generated)", "{{GRADING_SCALE}}": "Grading Scale Key (auto-generated)", "{{GRADING_KEY}}": "Grading Key (alias of grading scale)", "{{teacher_remark}}": "Teacher Remark", "{{principal_remark}}": "Principal Remark", "{{teacher_name}}": "Teacher Name"},
+        sampleValues: {"{{school_name}}": "Springfield Int'l Academy", "{{school_address}}": "12 Garki Road, Abuja, FCT", "{{school_phone}}": "0803 123 4567", "{{school_email}}": "info@springfieldacademy.edu.ng", "{{school_motto}}": "Knowledge and Integrity", "{{school_logo}}": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iNDAiPjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iNDAiIGZpbGw9IiMzYjgyZjYiLz48dGV4dCB4PSIxMCIgeT0iMjYiIGZpbGw9IiNmZmYiIGZvbnQtc2l6ZT0iMTYiPk1vY2sgTG9nbzwvdGV4dD48L3N2Zz4=", "{{principal_name}}": "Dr. Mrs. Folake Okafor", "{{head_teacher_name}}": "Mr. Ibrahim Musa", "{{school_stamp}}": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iNDAiPjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iNDAiIGZpbGw9IiMzYjgyZjYiLz48dGV4dCB4PSIxMCIgeT0iMjYiIGZpbGw9IiNmZmYiIGZvbnQtc2l6ZT0iMTYiPk1vY2sgTG9nbzwvdGV4dD48L3N2Zz4=", "{{student_name}}": "ADEYEMI OLUWASEUN CHUKWUEMEKA", "{{student_id}}": "SPS/2023/0147", "{{student_class}}": "JSS 3", "{{student_arm}}": "A", "{{student_gender}}": "Male", "{{student_dob}}": "12 Mar 2012", "{{admission_date}}": "10 Sep 2022", "{{subject_count}}": "9", "{{session_name}}": "2024/2025", "{{term_name}}": "Second Term", "{{total_score}}": "374.5", "{{average_score}}": "74.9", "{{class_position}}": "3", "{{position_suffix}}": "rd", "{{class_size}}": "42", "{{next_term_date}}": "21 Apr 2025", "{{next_term_start_date}}": "21 Apr 2025", "{{next_term_end_date}}": "27 Jun 2025", "{{date_issued}}": "28 Mar 2025", "{{result_issue_date}}": "28 Mar 2025", "{{teacher_remark}}": "Very good performance, keep it up!", "{{principal_remark}}": "Promoted to the next class.", "{{teacher_name}}": "Mr. Ademola Adewale", "{{SCORES_TABLE}}": "<table style=\"width:100%;border-collapse:collapse;font-size:9px;\"><thead><tr style=\"background:#1a3a6b;color:#fff;\"><th style=\"padding:5px 8px;text-align:left;font-size:9px;border:1px solid #1a3a6b;\">Subject</th><th style=\"padding:5px 6px;text-align:center;font-size:9px;border:1px solid #1a3a6b;\">CA1</th><th style=\"padding:5px 6px;text-align:center;font-size:9px;border:1px solid #1a3a6b;\">CA2</th><th style=\"padding:5px 6px;text-align:center;font-size:9px;border:1px solid #1a3a6b;\">Exam</th><th style=\"padding:5px 6px;text-align:center;font-size:9px;border:1px solid #1a3a6b;\">Total</th><th style=\"padding:5px 6px;text-align:center;font-size:9px;border:1px solid #1a3a6b;\">Grade</th></tr></thead><tbody><tr><td style=\"padding:4px 8px;border:1px solid #ddd;font-size:9px;font-weight:600;\">Mathematics</td><td style=\"padding:4px 6px;border:1px solid #ddd;font-size:9px;text-align:center;\">18.0</td><td style=\"padding:4px 6px;border:1px solid #ddd;font-size:9px;text-align:center;\">19.5</td><td style=\"padding:4px 6px;border:1px solid #ddd;font-size:9px;text-align:center;\">48.0</td><td style=\"padding:4px 6px;border:1px solid #ddd;font-size:9px;text-align:center;font-weight:700;\">85.5</td><td style=\"padding:4px 6px;border:1px solid #ddd;font-size:9px;text-align:center;font-weight:700;color:#0b6623;\">A</td></tr><tr><td style=\"padding:4px 8px;border:1px solid #ddd;font-size:9px;font-weight:600;\">English</td><td style=\"padding:4px 6px;border:1px solid #ddd;font-size:9px;text-align:center;\">16.0</td><td style=\"padding:4px 6px;border:1px solid #ddd;font-size:9px;text-align:center;\">17.0</td><td style=\"padding:4px 6px;border:1px solid #ddd;font-size:9px;text-align:center;\">45.5</td><td style=\"padding:4px 6px;border:1px solid #ddd;font-size:9px;text-align:center;font-weight:700;\">78.5</td><td style=\"padding:4px 6px;border:1px solid #ddd;font-size:9px;text-align:center;font-weight:700;color:#1a3a8f;\">B</td></tr></tbody></table>", "{{ATTENDANCE_SUMMARY}}": "<table style=\"width:100%;border-collapse:collapse;font-size:9px;\"><thead><tr style=\"background:#1a3a6b;color:#fff;\"><th style=\"padding:4px 8px;border:1px solid #1a3a6b;\">Total Days</th><th style=\"padding:4px 8px;border:1px solid #1a3a6b;\">Present</th><th style=\"padding:4px 8px;border:1px solid #1a3a6b;\">Absent</th><th style=\"padding:4px 8px;border:1px solid #1a3a6b;\">Late</th><th style=\"padding:4px 8px;border:1px solid #1a3a6b;\">Excused</th><th style=\"padding:4px 8px;border:1px solid #1a3a6b;\">Attendance Rate</th></tr></thead><tbody><tr style=\"text-align:center;background:#fff;\"><td style=\"padding:5px 8px;border:1px solid #ddd;font-weight:700;\">58</td><td style=\"padding:5px 8px;border:1px solid #ddd;color:#0b6623;font-weight:700;\">54</td><td style=\"padding:5px 8px;border:1px solid #ddd;color:#b30000;font-weight:700;\">1</td><td style=\"padding:5px 8px;border:1px solid #ddd;color:#8a6f00;font-weight:700;\">2</td><td style=\"padding:5px 8px;border:1px solid #ddd;font-weight:700;\">1</td><td style=\"padding:5px 8px;border:1px solid #ddd;font-weight:700;color:#1a3a6b;\">97%</td></tr></tbody></table>", "{{GRADING_SCALE}}": "<div class=\"grade-key\"><div class=\"grade-key-title\">Grading Scale</div><div class=\"grade-key-row\"><div class=\"grade-key-cell\"><strong>A</strong> &mdash; 70&ndash;100 (Excellent)</div><div class=\"grade-key-cell\"><strong>B</strong> &mdash; 60&ndash;69 (Very Good)</div><div class=\"grade-key-cell\"><strong>C</strong> &mdash; 50&ndash;59 (Good)</div><div class=\"grade-key-cell\"><strong>D</strong> &mdash; 40&ndash;49 (Pass)</div><div class=\"grade-key-cell\"><strong>F</strong> &mdash; 0&ndash;39 (Fail)</div></div></div>", "{{GRADING_KEY}}": "<div class=\"grade-key\"><div class=\"grade-key-title\">Grading Key</div><div class=\"grade-key-row\"><div class=\"grade-key-cell\"><strong>A</strong> &mdash; 70&ndash;100 (Excellent)</div><div class=\"grade-key-cell\"><strong>B</strong> &mdash; 60&ndash;69 (Very Good)</div><div class=\"grade-key-cell\"><strong>C</strong> &mdash; 50&ndash;59 (Good)</div><div class=\"grade-key-cell\"><strong>D</strong> &mdash; 40&ndash;49 (Pass)</div><div class=\"grade-key-cell\"><strong>F</strong> &mdash; 0&ndash;39 (Fail)</div></div></div>"},
+    };
+</script>
+
+<script>
+// ── Mock backend for standalone testing (no PHP required) ──────────────────
+// Save/update persists to localStorage; reloading the page restores the last
+// saved template exactly like the real server would.
+(function () {
+    var LS_KEY = 'mock_result_templates';
+    var MOCK_LOGO = 'data:image/svg+xml;base64,' + btoa(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="40">' +
+        '<rect width="100" height="40" fill="#3b82f6"/>' +
+        '<text x="10" y="26" fill="#fff" font-size="16">Mock Logo</text></svg>'
+    );
+
+    function loadTemplates() {
+        try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (e) { return {}; }
+    }
+    function saveTemplates(obj) {
+        try { localStorage.setItem(LS_KEY, JSON.stringify(obj)); } catch (e) {}
+    }
+
+    // Restore the most recently saved template as if the server returned it.
+    var saved = Object.keys(loadTemplates()).map(function (k) { return loadTemplates()[k]; })
+        .sort(function (a, b) { return b.updated - a.updated; })[0];
+    if (saved) {
+        BUILDER.templateId = saved.template_id;
+        BUILDER.hasData = true;
+        BUILDER.grapesJson = saved.json;
+        var nameEl = document.getElementById('tpl-name');
+        if (nameEl && saved.name) nameEl.value = saved.name;
+    }
+
+    var realFetch = window.fetch.bind(window);
+    window.fetch = function (url, opts) {
+        var u = String(url);
+        if (u.indexOf('/builder/result-template/save') !== -1) {
+            var body = JSON.parse((opts && opts.body) || '{}');
+            var tpls = loadTemplates();
+            var nextId = Object.keys(tpls).reduce(function (m, k) { return Math.max(m, parseInt(k, 10) || 0); }, 0) + 1;
+            if (!body.template_id) body.template_id = nextId;
+            tpls[body.template_id] = {
+                template_id:  body.template_id,
+                name:         body.name,
+                json:         body.json,
+                html:         body.html,
+                css:          body.css,
+                paper_size:   body.paper_size,
+                orientation:  body.orientation,
+                updated:      Date.now(),
+            };
+            saveTemplates(tpls);
+            return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve({ template_id: body.template_id }); } });
+        }
+        if (u.indexOf('/builder/result-template/upload-image') !== -1) {
+            return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve({ data: [MOCK_LOGO] }); } });
+        }
+        return realFetch(url, opts);
+    };
+
+    // GrapesJS Asset Manager uploads via XHR in some versions — patch it too.
+    var RealXHR = window.XMLHttpRequest;
+    window.XMLHttpRequest = function () {
+        var xhr = new RealXHR();
+        var realOpen = xhr.open.bind(xhr);
+        var realSend = xhr.send.bind(xhr);
+        xhr.open = function (method, url) {
+            if (String(url).indexOf('/builder/result-template/upload-image') !== -1) {
+                xhr._mock = true;
+                xhr.status = 200;
+                xhr.responseText = JSON.stringify({ data: [MOCK_LOGO] });
+            }
+            return realOpen(method, url);
+        };
+        xhr.send = function () {
+            if (xhr._mock) {
+                setTimeout(function () {
+                    xhr.readyState = 4;
+                    if (xhr.onreadystatechange) xhr.onreadystatechange.call(xhr);
+                    if (xhr.onload) xhr.onload.call(xhr);
+                }, 60);
+                return;
+            }
+            return realSend.apply(xhr, arguments);
+        };
+        return xhr;
+    };
+})();
+</script>
+
+<script src="https://unpkg.com/grapesjs@0.21.13/dist/grapes.min.js"></script>
+<script src="https://unpkg.com/grapesjs-blocks-basic@1.0.2/dist/grapesjs-blocks-basic.min.js"></script>
+<script>
+var editor = null;
+var dirty = false;
+var draftTimer = null;
+var DRAFT_KEY = 'resulttpl_draft_' + (BUILDER.templateId || 'new');
+
+// ── STRIDE Result Builder Flexibility Add-on ──────────────────────────────
+// Keeps official preset blocks protected (style yes, content no), restricts
+// the Style Manager to approved appearance controls, and powers the Line Box
+// and Result Variable blocks.
+function installResultBuilderFlexibility(editor, options) {
+    var variables = (options && options.variables) || {};
+
+    var ALLOWED_STYLE_PROPS = [
+        'font-family', 'font-size', 'font-weight', 'font-style', 'text-decoration',
+        'color', 'background-color', 'text-align', 'line-height', 'letter-spacing',
+        'width', 'height', 'min-height', 'max-width', 'display', 'vertical-align',
+        'position', 'top', 'left', 'right', 'bottom', 'float',
+        'padding', 'padding-top',
+        'padding-right', 'padding-bottom', 'padding-left', 'margin', 'margin-top',
+        'margin-right', 'margin-bottom', 'margin-left', 'border', 'border-top',
+        'border-right', 'border-bottom', 'border-left', 'border-color', 'border-width',
+        'border-style', 'border-radius'
+    ];
+
+    var TABLE_STYLE_PROPS = ALLOWED_STYLE_PROPS.concat([
+        'border-collapse', 'table-layout'
+    ]);
+
+    function baseProtectedDefaults() {
+        return {
+            editable: false,
+            droppable: false,
+            stylable: ALLOWED_STYLE_PROPS,
+            resizable: true,
+            copyable: true,
+            removable: true,
+            draggable: true,
+            toolbar: [
+                { label: '✥', command: 'tlb-move' },
+                { label: '⧉', command: 'tlb-clone' },
+                { label: '🗑', command: 'tlb-delete' }
+            ]
+        };
+    }
+
+    function htmlHasResultVariable(html) {
+        return /\{\{[A-Z_a-z0-9]+\}\}/.test(html || '');
+    }
+
+    function isOfficialResultComponent(cmp) {
+        if (!cmp) return false;
+        var attrs = cmp.getAttributes ? cmp.getAttributes() : {};
+        var cls = (attrs.class || '').toString();
+        var html = '';
+        try { html = cmp.toHTML(); } catch (e) { html = ''; }
+
+        return !!(
+            attrs['data-result-block'] ||
+            attrs['data-result-protected'] ||
+            attrs['data-result-variable'] ||
+            attrs['data-result-type'] ||
+            cls.indexOf('result-') !== -1 ||
+            htmlHasResultVariable(html)
+        );
+    }
+
+    function protectTree(cmp) {
+        if (!cmp) return;
+
+        if (isOfficialResultComponent(cmp)) {
+            var tagName = (cmp.get && cmp.get('tagName')) || '';
+            var isTable = ['table', 'thead', 'tbody', 'tr', 'td', 'th'].indexOf(String(tagName).toLowerCase()) !== -1;
+
+            cmp.set({
+                editable: false,
+                droppable: false,
+                stylable: isTable ? TABLE_STYLE_PROPS : ALLOWED_STYLE_PROPS,
+                resizable: true,
+                copyable: true,
+                removable: true,
+                draggable: true
+            });
+
+            var attrs = cmp.getAttributes ? cmp.getAttributes() : {};
+            if (htmlHasResultVariable(cmp.toHTML && cmp.toHTML()) && !attrs['data-result-protected']) {
+                cmp.addAttributes({ 'data-result-protected': 'true' });
+            }
+        }
+
+        if (cmp.components) {
+            cmp.components().forEach(function (child) { protectTree(child); });
+        }
+    }
+
+    function variableTraitOptions() {
+        var out = [];
+        Object.keys(variables).forEach(function (key) {
+            out.push({ id: key, name: variables[key] });
+        });
+        return out;
+    }
+
+    // Protected display text: styled/moved/resized/hidden, never rewritten.
+    editor.DomComponents.addType('result-protected', {
+        isComponent: function (el) {
+            return el.getAttribute && (
+                el.getAttribute('data-result-protected') ||
+                el.getAttribute('data-result-variable') ||
+                el.getAttribute('data-result-block')
+            );
+        },
+        model: {
+            defaults: Object.assign(baseProtectedDefaults(), {
+                traits: [
+                    {
+                        type: 'checkbox',
+                        name: 'data-hidden-print',
+                        label: 'Hide on result',
+                        changeProp: 1
+                    },
+                    {
+                        type: 'select',
+                        name: 'data-result-variable',
+                        label: 'Result variable',
+                        options: variableTraitOptions(),
+                        changeProp: 1
+                    },
+                    {
+                        type: 'rb-position',
+                        name: 'rb-position',
+                        label: 'Move / align'
+                    }
+                ]
+            }),
+            init: function () {
+                this.on('change:attributes:data-hidden-print', this.updateVisibility);
+                this.on('change:attributes:data-result-variable', this.applyVariable);
+            },
+            updateVisibility: function () {
+                var attrs = this.getAttributes();
+                var hide = attrs['data-hidden-print'];
+                var current = this.getStyle() || {};
+                if (hide === true || hide === 'true') {
+                    this.setStyle(Object.assign({}, current, { display: 'none' }));
+                } else if (current.display === 'none') {
+                    delete current.display;
+                    this.setStyle(current);
+                }
+            },
+            applyVariable: function () {
+                var v = this.getAttributes()['data-result-variable'];
+                if (!v) return;
+                var children = this.components();
+                var isLeaf = children.length === 0 ||
+                    (children.length === 1 && children.models[0].get('type') === 'textnode');
+                if (isLeaf) {
+                    this.components(v);
+                    ensureLineFormatTrait(this);
+                }
+            }
+        }
+    });
+
+    // Comment/signature/remark line boxes with controlled line count.
+    editor.DomComponents.addType('result-line-box', {
+        isComponent: function (el) {
+            return el.getAttribute && el.getAttribute('data-result-type') === 'line-box';
+        },
+        model: {
+            defaults: Object.assign(baseProtectedDefaults(), {
+                attributes: {
+                    'data-result-type': 'line-box',
+                    'data-lines': '3',
+                    'data-line-style': 'solid',
+                    'data-line-thickness': '1',
+                    'data-line-spacing': '12'
+                },
+                traits: [
+                    { type: 'number', name: 'data-lines', label: 'Number of lines', min: 1, max: 10, changeProp: 1 },
+                    { type: 'select', name: 'data-line-style', label: 'Line style', options: [
+                        { id: 'solid', name: 'Solid' },
+                        { id: 'dotted', name: 'Dotted' },
+                        { id: 'dashed', name: 'Dashed' }
+                    ], changeProp: 1 },
+                    { type: 'number', name: 'data-line-thickness', label: 'Line thickness', min: 1, max: 5, changeProp: 1 },
+                    { type: 'number', name: 'data-line-spacing', label: 'Line spacing', min: 6, max: 32, changeProp: 1 },
+                    { type: 'rb-position', name: 'rb-position', label: 'Move / align' }
+                ]
+            }),
+            init: function () {
+                this.on('change:attributes:data-lines change:attributes:data-line-style change:attributes:data-line-thickness change:attributes:data-line-spacing', this.refreshLines);
+                this.refreshLines();
+            },
+            refreshLines: function () {
+                var attrs = this.getAttributes();
+                var count = parseInt(attrs['data-lines'] || 3, 10);
+                var style = attrs['data-line-style'] || 'solid';
+                var thickness = parseInt(attrs['data-line-thickness'] || 1, 10);
+                var spacing = parseInt(attrs['data-line-spacing'] || 12, 10);
+                count = Math.max(1, Math.min(10, count || 3));
+
+                var lines = '';
+                for (var i = 0; i < count; i++) {
+                    lines += '<div data-result-protected="true" style="border-bottom:' + thickness + 'px ' + style + ' #333;height:' + spacing + 'px;margin-bottom:4px;"></div>';
+                }
+                this.components(lines);
+            }
+        }
+    });
+
+    // ── Line split & per-line format for result variables ───────────────────
+    // The trait stores only config data attributes (data-lines,
+    // data-line-{n}-words/font/size/color/weight/align).
+    // The real value is never shown in the builder; the renderer splits and
+    // styles it at print time (server: ResultVariableFormatting, test preview:
+    // resultBuilderRender below).
+
+    var RB_LINE_FONTS = ['Arial', 'Helvetica', 'Verdana', 'Tahoma', 'Trebuchet MS',
+        'Georgia', 'Times New Roman', 'Courier New', 'Lucida Console'];
+
+    function rbClampInt(value, min, max) {
+        var n = parseInt(value, 10);
+        if (isNaN(n)) return min;
+        return Math.max(min, Math.min(max, n));
+    }
+
+    function escapeHtml(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function rbFontOptionsHtml() {
+        var out = '<option value="">Default</option>';
+        RB_LINE_FONTS.forEach(function (f) {
+            out += '<option value="' + escapeHtml(f) + '">' + escapeHtml(f) + '</option>';
+        });
+        return out;
+    }
+
+    function rbLineRowsHtml(count) {
+        var rows = '';
+        for (var i = 1; i <= count; i++) {
+            rows += '<div class="rb-lines-row" data-line="' + i + '">'
+                + '<div class="rb-lines-row-head">Line ' + i + '</div>'
+                + '<div class="rb-lines-grid">'
+                + '<label class="rb-lines-field rb-lines-wide">Font<select class="rb-line-font">' + rbFontOptionsHtml() + '</select></label>'
+                + '<label class="rb-lines-field">Max words (0 = auto)<input type="number" class="rb-line-words" min="0" max="30" step="1" value="0"></label>'
+                + '<label class="rb-lines-field">Size (px)<input type="number" class="rb-line-size" min="6" max="72" step="1"></label>'
+                + '<label class="rb-lines-field">Color<input type="color" class="rb-line-color" value="#000000"></label>'
+                + '<label class="rb-lines-field">Weight<select class="rb-line-weight">'
+                + '<option value="">Default</option><option value="400">Normal</option>'
+                + '<option value="600">Semibold</option><option value="700">Bold</option></select></label>'
+                + '<label class="rb-lines-field">Align<select class="rb-line-align">'
+                + '<option value="">Default</option><option value="left">Left</option>'
+                + '<option value="center">Center</option><option value="right">Right</option>'
+                + '<option value="justify">Justify</option></select></label>'
+                + '</div></div>';
+        }
+        return rows;
+    }
+
+    editor.Traits.addType('rb-lines', {
+        createInput: function () {
+            var view = this;
+            var target = view.target || (view.model && view.model.get('target'));
+            var container = document.createElement('div');
+            container.className = 'rb-lines-trait';
+            container.innerHTML =
+                '<div class="rb-lines-top">'
+                + '<label class="rb-lines-field">Lines'
+                + '<input type="number" class="rb-lines-count" min="1" max="10" step="1" value="1"></label>'
+                + '</div>'
+                + '<div class="rb-lines-list"></div>';
+
+            var list = container.querySelector('.rb-lines-list');
+            var countInput = container.querySelector('.rb-lines-count');
+
+            function syncRowsFromAttrs() {
+                if (!target || !target.getAttributes) return;
+                var attrs = target.getAttributes() || {};
+                var rows = list.querySelectorAll('.rb-lines-row');
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i];
+                    var n = parseInt(row.getAttribute('data-line'), 10);
+                    row.querySelector('.rb-line-font').value = attrs['data-line-' + n + '-font'] || '';
+                    row.querySelector('.rb-line-words').value = attrs['data-line-' + n + '-words'] || '0';
+                    row.querySelector('.rb-line-size').value = attrs['data-line-' + n + '-size'] || '';
+                    row.querySelector('.rb-line-color').value = attrs['data-line-' + n + '-color'] || '#000000';
+                    row.querySelector('.rb-line-weight').value = attrs['data-line-' + n + '-weight'] || '';
+                    row.querySelector('.rb-line-align').value = attrs['data-line-' + n + '-align'] || '';
+                }
+            }
+
+            function syncFromTarget() {
+                if (!target || !target.getAttributes) return;
+                var attrs = target.getAttributes() || {};
+                var count = rbClampInt(attrs['data-lines'], 1, 10);
+                countInput.value = count;
+                if (list.childElementCount !== count) {
+                    list.innerHTML = rbLineRowsHtml(count);
+                }
+                syncRowsFromAttrs();
+            }
+
+            function writeToTarget() {
+                if (!target || !target.getAttributes) return;
+                var attrs = target.getAttributes() || {};
+                var count = rbClampInt(countInput.value, 1, 10);
+                var next = {
+                    'data-lines': String(count)
+                };
+                var keep = {};
+                var rows = list.querySelectorAll('.rb-lines-row');
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i];
+                    var n = parseInt(row.getAttribute('data-line'), 10);
+                    if (n > count) continue;
+                    keep['data-line-' + n + '-font'] = true;
+                    keep['data-line-' + n + '-words'] = true;
+                    keep['data-line-' + n + '-size'] = true;
+                    keep['data-line-' + n + '-color'] = true;
+                    keep['data-line-' + n + '-weight'] = true;
+                    keep['data-line-' + n + '-align'] = true;
+                    var font = row.querySelector('.rb-line-font').value;
+                    var words = row.querySelector('.rb-line-words').value;
+                    var size = row.querySelector('.rb-line-size').value;
+                    var color = row.querySelector('.rb-line-color').value;
+                    var weight = row.querySelector('.rb-line-weight').value;
+                    var align = row.querySelector('.rb-line-align').value;
+                    if (font !== '') next['data-line-' + n + '-font'] = font;
+                    if (words !== '' && words !== '0') next['data-line-' + n + '-words'] = words;
+                    if (size !== '') next['data-line-' + n + '-size'] = size;
+                    if (color !== '') next['data-line-' + n + '-color'] = color;
+                    if (weight !== '') next['data-line-' + n + '-weight'] = weight;
+                    if (align !== '') next['data-line-' + n + '-align'] = align;
+                }
+                Object.keys(attrs).forEach(function (key) {
+                    if (key.indexOf('data-line-') === 0 && key !== 'data-lines' && !keep[key]) {
+                        next[key] = '';
+                    }
+                });
+                Object.keys(next).forEach(function (key) {
+                    var patch = {};
+                    patch[key] = next[key];
+                    if (patch[key] === '') {
+                        delete patch[key];
+                        if (target.removeAttributes) target.removeAttributes([key]);
+                    } else if (target.addAttributes) {
+                        target.addAttributes(patch);
+                    }
+                });
+                if (target.removeAttributes && attrs['data-words-per-line'] !== undefined) {
+                    target.removeAttributes(['data-words-per-line']);
+                }
+            }
+
+            function onAnyChange(ev) {
+                if (ev.target.classList.contains('rb-lines-count')) {
+                    var count = rbClampInt(countInput.value, 1, 10);
+                    if (list.childElementCount !== count) {
+                        list.innerHTML = rbLineRowsHtml(count);
+                        syncRowsFromAttrs();
+                    }
+                }
+                writeToTarget();
+            }
+
+            container.addEventListener('input', onAnyChange);
+            container.addEventListener('change', onAnyChange);
+
+            view._syncFromTarget = syncFromTarget;
+            syncFromTarget();
+            return container;
+        },
+        onUpdate: function () {
+            if (this._syncFromTarget) this._syncFromTarget();
+        }
+    });
+
+    // ── One-click element positioning (Left / Center / Right / Full width) ───
+    // Block-level elements are aligned with display:block + auto margins
+    // (DomPDF-safe); table cells align their content via text-align.
+    editor.Traits.addType('rb-position', {
+        createInput: function () {
+            var view = this;
+            var target = view.target || (view.model && view.model.get('target'));
+            var container = document.createElement('div');
+            container.className = 'rb-position-trait';
+            container.innerHTML =
+                '<div class="rb-position-row">'
+                + '<button type="button" class="rb-pos-btn" data-align="left">Left</button>'
+                + '<button type="button" class="rb-pos-btn" data-align="center">Center</button>'
+                + '<button type="button" class="rb-pos-btn" data-align="right">Right</button>'
+                + '<button type="button" class="rb-pos-btn" data-align="full">Full width</button>'
+                + '</div>';
+
+            container.addEventListener('click', function (ev) {
+                var btn = ev.target && ev.target.closest ? ev.target.closest('[data-align]') : null;
+                if (!btn || !target || !target.get || !target.getStyle) return;
+                var align = btn.getAttribute('data-align');
+                var tag = String(target.get('tagName') || '').toLowerCase();
+                var style = Object.assign({}, target.getStyle() || {});
+                if (tag === 'td' || tag === 'th') {
+                    style['text-align'] = align === 'full' ? 'left' : align;
+                } else {
+                    style['display'] = 'block';
+                    if (align === 'left') { style['margin-left'] = '0'; style['margin-right'] = 'auto'; }
+                    if (align === 'center') { style['margin-left'] = 'auto'; style['margin-right'] = 'auto'; }
+                    if (align === 'right') { style['margin-left'] = 'auto'; style['margin-right'] = '0'; }
+                    if (align === 'full') { style['margin-left'] = '0'; style['margin-right'] = '0'; }
+                }
+                target.setStyle(style);
+            });
+
+            return container;
+        }
+    });
+
+    // ── Block grid layout (rows × columns) ──────────────────────────────────
+    // Rows are derived live from the block's variable elements (the Line split
+    // & format "Lines" setting, max across the block). Each row's column count
+    // is stored on the block as data-grid-row-{n}-cols so it survives saves.
+    editor.Traits.addType('rb-grid', {
+        createInput: function () {
+            var view = this;
+            var target = view.target || (view.model && view.model.get('target'));
+            var container = document.createElement('div');
+            container.className = 'rb-grid-trait';
+            container.innerHTML =
+                '<div class="rb-grid-top">'
+                + '<label>Rows<input type="number" class="rb-grid-rows-input" min="1" max="10" step="1" value="1"></label>'
+                + '<span class="rb-grid-count"></span>'
+                + '</div>'
+                + '<div class="rb-grid-list"></div>';
+
+            var list = container.querySelector('.rb-grid-list');
+            var rowsInput = container.querySelector('.rb-grid-rows-input');
+            var countEl = container.querySelector('.rb-grid-count');
+
+            function walkVariables(cmp, cb) {
+                if (!cmp || !cmp.components) return;
+                var key = elementVariableKey(cmp);
+                if (key) cb(cmp, key);
+                cmp.components().forEach(function (ch) { walkVariables(ch, cb); });
+            }
+
+            function distribute(count, groups) {
+                var out = [];
+                var remaining = count;
+                for (var i = 0; i < groups; i++) {
+                    var left = groups - i;
+                    var take = left === 1 ? remaining : Math.ceil(remaining / left);
+                    out.push(take);
+                    remaining -= take;
+                }
+                return out;
+            }
+
+            function gridState() {
+                var vars = [];
+                walkVariables(target, function (cmp, key) { vars.push(key); });
+                var attrs = target && target.getAttributes ? target.getAttributes() : {};
+                var stored = parseInt(attrs['data-grid-rows'], 10);
+                var rows = isNaN(stored) || stored < 1
+                    ? Math.max(1, vars.length)
+                    : Math.min(10, stored);
+                var perRow = distribute(vars.length, rows);
+                var cols = [];
+                var assignments = [];
+                var cursor = 0;
+                for (var i = 0; i < rows; i++) {
+                    var v = parseInt(attrs['data-grid-row-' + (i + 1) + '-cols'], 10);
+                    var c = isNaN(v) || v < 1 ? 1 : Math.min(12, v);
+                    cols.push(c);
+                    var rowVars = vars.slice(cursor, cursor + perRow[i]);
+                    cursor += perRow[i];
+                    var perCol = distribute(rowVars.length, c);
+                    var cells = [];
+                    var c2 = 0;
+                    for (var k = 0; k < c; k++) {
+                        cells.push(rowVars.slice(c2, c2 + perCol[k]));
+                        c2 += perCol[k];
+                    }
+                    assignments.push(cells);
+                }
+                return { rows: rows, varsCount: vars.length, cols: cols, assignments: assignments };
+            }
+
+            function cellClass(n) {
+                return n === 2 ? 'is-col2' : n === 3 ? 'is-col3' : n === 4 ? 'is-col4' : '';
+            }
+
+            function buildRows(state) {
+                var html = '';
+                for (var i = 0; i < state.rows; i++) {
+                    var n = i + 1;
+                    var c = state.cols[i] || 1;
+                    var cells = '';
+                    for (var k = 0; k < c; k++) {
+                        var labels = (state.assignments[i][k] || []).map(function (key) {
+                            return '<span class="rb-grid-cell-label">' + key + '</span>';
+                        }).join('');
+                        cells += '<div class="rb-grid-cell ' + cellClass(c) + '">' + labels + '</div>';
+                    }
+                    html += '<div class="rb-grid-row" data-grid-row="' + n + '">'
+                        + '<span class="rb-grid-row-label">Row ' + n + '</span>'
+                        + '<label>Cols<input type="number" class="rb-grid-cols" min="1" max="12" step="1" value="' + c + '"></label>'
+                        + '<div class="rb-grid-diagram" style="grid-template-columns:repeat(' + c + ',1fr);">' + cells + '</div>'
+                        + '</div>';
+                }
+                return html;
+            }
+
+            function redraw(force) {
+                if (!target || !target.getAttributes) return;
+                var state = gridState();
+                var snapshot = JSON.stringify([state.rows, state.varsCount, state.cols, state.assignments]);
+                if (!force && snapshot === view._gridSnapshot) return;
+                view._gridSnapshot = snapshot;
+                rowsInput.value = String(state.rows);
+                countEl.textContent = 'Variables: ' + state.varsCount;
+                if (list.childElementCount !== state.rows || force) {
+                    list.innerHTML = buildRows(state);
+                } else {
+                    var diagrams = list.querySelectorAll('.rb-grid-diagram');
+                    for (var i = 0; i < diagrams.length; i++) {
+                        var n = i + 1;
+                        var c = state.cols[i] || 1;
+                        diagrams[i].style.gridTemplateColumns = 'repeat(' + c + ',1fr)';
+                        diagrams[i].innerHTML = '';
+                        for (var k = 0; k < c; k++) {
+                            var labels = (state.assignments[i][k] || []).map(function (key) {
+                                return '<span class="rb-grid-cell-label">' + key + '</span>';
+                            }).join('');
+                            diagrams[i].innerHTML += '<div class="rb-grid-cell ' + cellClass(c) + '">' + labels + '</div>';
+                        }
+                    }
+                    var colsInputs = list.querySelectorAll('.rb-grid-cols');
+                    for (var m = 0; m < colsInputs.length; m++) {
+                        var vv = state.cols[m] || 1;
+                        if (colsInputs[m].value !== String(vv)) colsInputs[m].value = vv;
+                    }
+                }
+                var attrs = target.getAttributes() || {};
+                var stale = Object.keys(attrs).filter(function (key) {
+                    var m = /^data-grid-row-(\d+)-cols$/.exec(key);
+                    return m && parseInt(m[1], 10) > state.rows;
+                });
+                if (stale.length && target.removeAttributes) target.removeAttributes(stale);
+            }
+
+            function writeCols(n, value) {
+                if (!target || !target.getAttributes) return;
+                var parsed = parseInt(value, 10);
+                var val = isNaN(parsed) ? 1 : Math.min(12, Math.max(1, parsed));
+                var key = 'data-grid-row-' + n + '-cols';
+                var attrs = target.getAttributes() || {};
+                if (val > 1) {
+                    var patch = {};
+                    patch[key] = String(val);
+                    if (target.addAttributes) target.addAttributes(patch);
+                } else if (attrs[key] !== undefined) {
+                    if (target.removeAttributes) target.removeAttributes([key]);
+                }
+                redraw(true);
+            }
+
+            function writeRows(value) {
+                if (!target || !target.addAttributes) return;
+                var parsed = parseInt(value, 10);
+                var val = isNaN(parsed) ? 1 : Math.min(10, Math.max(1, parsed));
+                var patch = {};
+                patch['data-grid-rows'] = String(val);
+                target.addAttributes(patch);
+                redraw(true);
+            }
+
+            container.addEventListener('change', function (ev) {
+                if (ev.target.classList.contains('rb-grid-rows-input')) {
+                    writeRows(ev.target.value);
+                    return;
+                }
+                if (!ev.target.classList.contains('rb-grid-cols')) return;
+                var row = ev.target.closest('.rb-grid-row');
+                if (!row) return;
+                writeCols(parseInt(row.getAttribute('data-grid-row'), 10), ev.target.value);
+            });
+
+            var em = view.em || (target && target.em);
+            if (em) {
+                var onChange = function (updated) {
+                    if (!updated) return;
+                    var c = updated;
+                    var inScope = updated === target;
+                    while (!inScope && c && c.parent) {
+                        c = c.parent();
+                        inScope = c === target;
+                    }
+                    if (inScope) redraw(false);
+                };
+                var cleanup = function () {
+                    em.off('component:update', onChange);
+                    em.off('component:add', onChange);
+                    em.off('component:remove', onChange);
+                    em.off('component:deselected', cleanup);
+                };
+                em.on('component:update', onChange);
+                em.on('component:add', onChange);
+                em.on('component:remove', onChange);
+                em.on('component:deselected', cleanup);
+            }
+
+            view._redraw = redraw;
+            redraw(true);
+            return container;
+        },
+        onUpdate: function () {
+            if (this._redraw) this._redraw(false);
+        }
+    });
+
+    function elementVariableKey(cmp) {
+        if (!cmp || !cmp.getAttributes || !cmp.components) return null;
+        var attrs = cmp.getAttributes() || {};
+        if (attrs['data-result-variable']) {
+            var stored = String(attrs['data-result-variable']).trim();
+            if (stored.indexOf('{{') !== 0) stored = '{{' + stored + '}}';
+            return stored;
+        }
+        var children = cmp.components();
+        var text = '';
+        var hasNested = false;
+        children.forEach(function (ch) {
+            var t = ch.get('type');
+            if (t === 'textnode' || t === 'text') {
+                text += ch.get('content') || '';
+            } else {
+                hasNested = true;
+            }
+        });
+        if (hasNested || !text) return null;
+        var trimmed = text.trim();
+        var matches = trimmed.match(/\{\{[A-Z_a-z0-9]+\}\}/g) || [];
+        if (matches.length !== 1) return null;
+        var rest = trimmed.replace(/\{\{[A-Z_a-z0-9]+\}\}/g, '').trim();
+        if (rest !== '' && !/^["'\u201C\u201D\u2018\u2019]+$/.test(rest)) return null;
+        return matches[0];
+    }
+
+    function ensureLineFormatTrait(cmp) {
+        if (!cmp || !cmp.get || !cmp.getAttributes) return;
+        var key = elementVariableKey(cmp);
+        if (!key) return;
+        var attrs = cmp.getAttributes() || {};
+        if (!attrs['data-result-variable']) {
+            cmp.addAttributes({ 'data-result-variable': key });
+        }
+        var traits = (cmp.get('traits') || []).slice();
+        var has = traits.some(function (t) {
+            return t && (t.type === 'rb-lines' || t.name === 'rb-lines');
+        });
+        if (!has) {
+            traits.push({ type: 'rb-lines', name: 'rb-lines', label: 'Line split & format' });
+            cmp.set('traits', traits);
+        }
+    }
+
+    function ensureLineFormatTraitsInTree(cmp) {
+        if (!cmp) return;
+        ensureLineFormatTrait(cmp);
+        ensureGridTrait(cmp);
+        if (cmp.components) {
+            cmp.components().forEach(function (child) { ensureLineFormatTraitsInTree(child); });
+        }
+    }
+
+    function hasBlockAncestor(cmp) {
+        var p = cmp.parent ? cmp.parent() : null;
+        while (p) {
+            var attrs = (p.getAttributes && p.getAttributes()) || {};
+            if (attrs['data-result-block']) return true;
+            p = p.parent ? p.parent() : null;
+        }
+        return false;
+    }
+
+    function ensureGridTrait(cmp) {
+        if (!cmp || !cmp.get || !cmp.getAttributes || !cmp.components) return;
+        var attrs = cmp.getAttributes() || {};
+        var isBlock = !!attrs['data-result-block'];
+        var isVariable = !!elementVariableKey(cmp);
+        if (!isBlock && !isVariable) return;
+        if (isVariable && !isBlock && hasBlockAncestor(cmp)) return;
+        var traits = (cmp.get('traits') || []).slice();
+        var has = traits.some(function (t) {
+            return t && (t.type === 'rb-grid' || t.name === 'rb-grid');
+        });
+        if (!has) {
+            traits.push({ type: 'rb-grid', name: 'rb-grid', label: 'Grid layout' });
+            cmp.set('traits', traits);
+        }
+    }
+
+    // ── Render mirror — same splitting/formatting rules as the server ────────
+    function splitVariableText(text, lines, caps) {
+        var words = String(text == null ? '' : text).trim().split(/\s+/).filter(function (w) { return w.length > 0; });
+        if (words.length === 0) return [];
+        lines = rbClampInt(lines, 1, 10);
+        caps = caps || [];
+        var out = [];
+        var remaining = words.length;
+        for (var i = 0; i < lines && remaining > 0; i++) {
+            var linesLeft = lines - i;
+            var take = Math.ceil(remaining / linesLeft);
+            var cap = parseInt(caps[i], 10);
+            if (!isNaN(cap) && cap > 0) take = Math.min(take, cap);
+            var start = words.length - remaining;
+            out.push(words.slice(start, start + take).join(' '));
+            remaining -= take;
+        }
+        if (remaining > 0) {
+            out[out.length - 1] += ' ' + words.slice(words.length - remaining).join(' ');
+        }
+        return out;
+    }
+
+    function lineCapsFromAttrs(attrs, lines) {
+        var caps = [];
+        for (var i = 1; i <= lines; i++) {
+            var v = attrs['data-line-' + i + '-words'];
+            if (v === undefined || v === '') v = attrs['data-words-per-line'] || 0;
+            caps.push(v);
+        }
+        return caps;
+    }
+
+    function formatVariableHtml(text, attrs) {
+        var lines = rbClampInt(attrs['data-lines'], 1, 10);
+        var caps = lineCapsFromAttrs(attrs, lines);
+        var linesArr = splitVariableText(text, lines, caps);
+        var html = '';
+        linesArr.forEach(function (line, i) {
+            var n = i + 1;
+            var style = 'display:block;';
+            if (attrs['data-line-' + n + '-font']) style += 'font-family:' + attrs['data-line-' + n + '-font'] + ',sans-serif;';
+            if (attrs['data-line-' + n + '-size']) style += 'font-size:' + attrs['data-line-' + n + '-size'] + 'px;';
+            if (attrs['data-line-' + n + '-color']) style += 'color:' + attrs['data-line-' + n + '-color'] + ';';
+            if (attrs['data-line-' + n + '-weight']) style += 'font-weight:' + attrs['data-line-' + n + '-weight'] + ';';
+            if (attrs['data-line-' + n + '-align']) style += 'text-align:' + attrs['data-line-' + n + '-align'] + ';';
+            html += '<span style="' + style + '">' + escapeHtml(line) + '</span>';
+        });
+        return html;
+    }
+
+    window.resultBuilderRender = {
+        splitVariableText: splitVariableText,
+        formatVariableHtml: formatVariableHtml,
+        escapeHtml: escapeHtml
+    };
+
+    // Style Manager: expose only the appearance controls non-developers need.
+    editor.StyleManager.getSectors().reset([
+        {
+            name: 'Position', open: true, buildProps: ['position', 'top', 'left', 'right', 'bottom', 'float']
+        },
+        {
+            name: 'Size & Position', open: true, buildProps: ['width', 'height', 'min-height', 'max-width', 'display', 'vertical-align']
+        },
+        {
+            name: 'Typography', open: true, buildProps: [
+                'font-family', 'font-size', 'font-weight', 'font-style', 'text-decoration',
+                'color', 'text-align', 'line-height', 'letter-spacing'
+            ]
+        },
+        {
+            name: 'Spacing', open: false, buildProps: [
+                'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+                'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left'
+            ]
+        },
+        {
+            name: 'Background', open: false, buildProps: ['background-color']
+        },
+        {
+            name: 'Border', open: false, buildProps: ['border', 'border-width', 'border-style', 'border-color', 'border-radius']
+        }
+    ]);
+
+    editor.on('component:add', function (cmp) {
+        setTimeout(function () {
+            protectTree(cmp);
+            ensureLineFormatTraitsInTree(cmp);
+        }, 0);
+    });
+
+    editor.on('load', function () {
+        var wrapper = editor.getWrapper();
+        if (wrapper) {
+            protectTree(wrapper);
+            ensureLineFormatTraitsInTree(wrapper);
+        }
+    });
+
+    editor.on('component:selected', function (cmp) {
+        if (cmp) {
+            protectTree(cmp);
+            ensureLineFormatTrait(cmp);
+            ensureGridTrait(cmp);
+        }
+    });
+}
+
+// ── Local draft backup — survives crashes, session timeouts, failed saves ────
+function saveDraftLocally() {
+    try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+            savedAt: Date.now(),
+            name:    document.getElementById('tpl-name').value,
+            project: editor.getProjectData(),
+        }));
+    } catch (e) { /* localStorage full or unavailable — draft backup is best-effort */ }
+}
+
+function scheduleDraftBackup() {
+    dirty = true;
+    setStatus('Unsaved changes', '');
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(saveDraftLocally, 2000);
+}
+
+function clearLocalDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+}
+
+// ── Warn before leaving with unsaved changes ─────────────────────────────────
+window.addEventListener('beforeunload', function (e) {
+    if (dirty) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
+// ── Init GrapeJS ─────────────────────────────────────────────────────────────
+(function initEditor() {
+    editor = grapesjs.init({
+        container: '#gjs',
+        height: '100%',
+        width: 'auto',
+        storageManager: false,
+        deviceManager: {
+            devices: [
+                { name: 'A4 Portrait',  width: '794px'  },
+                { name: 'A4 Landscape', width: '1123px' },
+            ]
+        },
+        plugins: ['gjs-blocks-basic'],
+        pluginsOpts: {
+            'gjs-blocks-basic': {
+                flexGrid: false,
+                blocks: ['column1', 'column2', 'column3', 'text', 'image', 'divider'],
+            }
+        },
+        canvas: {
+            styles: ['https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap']
+        },
+        assetManager: {
+            upload: BUILDER.uploadUrl,
+            uploadName: 'files',
+            multiUpload: false,
+            autoAdd: true,
+            headers: { 'X-CSRF-TOKEN': BUILDER.csrfToken },
+            params: { school_id: BUILDER.schoolId },
+        }
+    });
+
+    // ── Custom Table component — dynamic add/remove row & column ─────────────
+    editor.Commands.add('tbl-add-row', {
+        run: function (ed, sender, opts) {
+            var tbl = opts && opts.component;
+            if (!tbl) return;
+            var rows = tbl.components();
+            var cols = rows.length ? rows.at(0).components().length : 1;
+            var cells = '';
+            for (var i = 0; i < cols; i++) {
+                cells += '<td style="padding:5px 8px;border:1px solid #ccc;font-size:10px;">&nbsp;</td>';
+            }
+            rows.add('<tr>' + cells + '</tr>');
+        }
+    });
+    editor.Commands.add('tbl-remove-row', {
+        run: function (ed, sender, opts) {
+            var tbl = opts && opts.component;
+            if (!tbl) return;
+            var rows = tbl.components();
+            if (rows.length > 1) rows.at(rows.length - 1).remove();
+        }
+    });
+    editor.Commands.add('tbl-add-col', {
+        run: function (ed, sender, opts) {
+            var tbl = opts && opts.component;
+            if (!tbl) return;
+            tbl.components().forEach(function (row) {
+                row.components().add('<td style="padding:5px 8px;border:1px solid #ccc;font-size:10px;">&nbsp;</td>');
+            });
+        }
+    });
+    editor.Commands.add('tbl-remove-col', {
+        run: function (ed, sender, opts) {
+            var tbl = opts && opts.component;
+            if (!tbl) return;
+            tbl.components().forEach(function (row) {
+                var cells = row.components();
+                if (cells.length > 1) cells.at(cells.length - 1).remove();
+            });
+        }
+    });
+
+    // ── Generic block toolbar commands (used by protected result blocks) ─────
+    editor.Commands.add('tlb-move', {
+        run: function (ed) {
+            // Navigate to the parent so the block can be repositioned in flow.
+            var sel = ed.getSelected();
+            if (!sel) return;
+            var parent = sel.parent();
+            if (parent) { ed.select(parent); ed.refresh(); }
+        }
+    });
+    editor.Commands.add('tlb-clone', {
+        run: function (ed) {
+            var sel = ed.getSelected();
+            if (!sel) return;
+            var parent = sel.parent();
+            var copy = sel.clone();
+            if (parent) { parent.append(copy); }
+            ed.select(copy);
+            ed.refresh();
+        }
+    });
+    editor.Commands.add('tlb-delete', {
+        run: function (ed) { ed.runCommand('core:component-delete'); }
+    });
+
+    editor.DomComponents.addType('result-table', {
+        isComponent: function (el) {
+            return el.tagName === 'TABLE' && el.getAttribute && el.getAttribute('data-gjs-type') === 'result-table';
+        },
+        model: {
+            defaults: {
+                tagName: 'table',
+                attributes: {
+                    'data-gjs-type': 'result-table',
+                    style: 'width:100%;border-collapse:collapse;font-size:10px;margin-bottom:12px;',
+                },
+                toolbar: [
+                    { label: '✥',    command: 'tlb-move' },
+                    { label: '+Row', command: 'tbl-add-row' },
+                    { label: '−Row', command: 'tbl-remove-row' },
+                    { label: '+Col', command: 'tbl-add-col' },
+                    { label: '−Col', command: 'tbl-remove-col' },
+                    { label: '⧉',    command: 'tlb-clone' },
+                    { label: '🗑',    command: 'tlb-delete' },
+                ],
+            },
+        },
+    });
+
+    // ── Custom result blocks ──────────────────────────────────────────────────
+    var blocks = [
+        {
+            id: 'result-school-header',
+            label: '🏫 School Header',
+            category: '📋 Result Blocks',
+            content: `<div class="school-header" data-result-block="school-header" data-result-protected="true" style="text-align:center;border-bottom:3px double #1a2447;padding:16px 16px 14px;">
+  <img src="{{school_logo}}" alt="Logo" style="height:64px;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto;" onerror="this.style.display='none'">
+  <div style="font-size:22px;font-weight:700;color:#1a2447;text-transform:uppercase;letter-spacing:1px;">{{school_name}}</div>
+  <div style="font-size:11px;color:#555;margin-top:4px;">{{school_address}}</div>
+  <div style="font-size:11px;color:#555;margin-top:2px;">Tel: {{school_phone}} &nbsp;|&nbsp; {{school_email}}</div>
+  <div style="font-size:11px;font-style:italic;color:#888;margin-top:4px;">"{{school_motto}}"</div>
+  <div style="font-size:15px;font-weight:700;color:#c0392b;margin-top:10px;text-transform:uppercase;letter-spacing:2px;border-top:1px solid #ddd;padding-top:8px;">Student Report Card</div>
+</div>`
+        },
+        {
+            id: 'result-student-info',
+            label: '👤 Student Info',
+            category: '📋 Result Blocks',
+            content: `<table data-result-block="student-info" data-result-protected="true" style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px;">
+  <tr>
+    <td data-result-protected="label" style="padding:5px 8px;border:1px solid #ddd;font-weight:700;color:#555;width:22%;background:#f9fafb;">Student Name</td>
+    <td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;" colspan="3">{{student_name}}</td>
+  </tr>
+  <tr>
+    <td data-result-protected="label" style="padding:5px 8px;border:1px solid #ddd;font-weight:700;color:#555;background:#f9fafb;">Reg. Number</td>
+    <td style="padding:5px 8px;border:1px solid #ddd;">{{student_id}}</td>
+    <td data-result-protected="label" style="padding:5px 8px;border:1px solid #ddd;font-weight:700;color:#555;background:#f9fafb;width:18%;">Gender</td>
+    <td style="padding:5px 8px;border:1px solid #ddd;">{{student_gender}}</td>
+  </tr>
+  <tr>
+    <td data-result-protected="label" style="padding:5px 8px;border:1px solid #ddd;font-weight:700;color:#555;background:#f9fafb;">Class</td>
+    <td style="padding:5px 8px;border:1px solid #ddd;">{{student_class}} — {{student_arm}}</td>
+    <td data-result-protected="label" style="padding:5px 8px;border:1px solid #ddd;font-weight:700;color:#555;background:#f9fafb;">Date of Birth</td>
+    <td style="padding:5px 8px;border:1px solid #ddd;">{{student_dob}}</td>
+  </tr>
+  <tr>
+    <td data-result-protected="label" style="padding:5px 8px;border:1px solid #ddd;font-weight:700;color:#555;background:#f9fafb;">Session</td>
+    <td style="padding:5px 8px;border:1px solid #ddd;">{{session_name}}</td>
+    <td data-result-protected="label" style="padding:5px 8px;border:1px solid #ddd;font-weight:700;color:#555;background:#f9fafb;">Term</td>
+    <td style="padding:5px 8px;border:1px solid #ddd;font-weight:700;color:#1a2447;">{{term_name}}</td>
+  </tr>
+</table>`
+        },
+        {
+            id: 'result-scores-table',
+            label: '📊 Scores Table',
+            category: '📋 Result Blocks',
+            content: `<div data-result-block="scores-table" data-result-protected="true" style="margin-bottom:12px;">
+  <p data-result-protected="label" style="font-size:10px;font-weight:700;color:#1a2447;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Academic Performance</p>
+  {{SCORES_TABLE}}
+</div>`
+        },
+        {
+            id: 'result-performance-summary',
+            label: '🏆 Performance Summary',
+            category: '📋 Result Blocks',
+            content: `<table data-result-block="performance-summary" data-result-protected="true" style="width:100%;border-collapse:collapse;border:2px solid #1a2447;margin-bottom:12px;">
+  <tr style="background:#1a2447;color:#fff;">
+    <td style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;">Total Score</td>
+    <td style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;">Average</td>
+    <td style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;">Class Position</td>
+    <td style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;">Class Size</td>
+  </tr>
+  <tr>
+    <td style="padding:10px;text-align:center;font-size:20px;font-weight:700;color:#1a2447;border-right:1px solid #ddd;">{{total_score}}</td>
+    <td style="padding:10px;text-align:center;font-size:20px;font-weight:700;color:#1a2447;border-right:1px solid #ddd;">{{average_score}}%</td>
+    <td style="padding:10px;text-align:center;font-size:20px;font-weight:700;color:#c0392b;border-right:1px solid #ddd;">{{class_position}}<sup style="font-size:11px;">{{position_suffix}}</sup></td>
+    <td style="padding:10px;text-align:center;font-size:20px;font-weight:700;color:#555;">{{class_size}}</td>
+  </tr>
+</table>`
+        },
+        {
+            id: 'result-attendance',
+            label: '📅 Attendance',
+            category: '📋 Result Blocks',
+            content: `<div data-result-block="attendance" data-result-protected="true" style="margin-bottom:12px;">
+  <p data-result-protected="label" style="font-size:10px;font-weight:700;color:#1a2447;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Attendance</p>
+  {{ATTENDANCE_SUMMARY}}
+</div>`
+        },
+        {
+            id: 'result-remarks',
+            label: '💬 Remarks',
+            category: '📋 Result Blocks',
+            content: `<table data-result-block="remarks" data-result-protected="true" style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px;">
+  <tr>
+    <td data-result-protected="label" style="padding:6px 10px;border:1px solid #ddd;font-weight:700;color:#555;background:#f9fafb;width:28%;vertical-align:top;">Class Teacher's Remark</td>
+    <td style="padding:6px 10px;border:1px solid #ddd;min-height:30px;">{{teacher_remark}}</td>
+  </tr>
+  <tr>
+    <td data-result-protected="label" style="padding:6px 10px;border:1px solid #ddd;font-weight:700;color:#555;background:#f9fafb;">Principal's Remark</td>
+    <td style="padding:6px 10px;border:1px solid #ddd;min-height:30px;">{{principal_remark}}</td>
+  </tr>
+</table>`
+        },
+        {
+            id: 'result-signatures',
+            label: '✍️ Signatures',
+            category: '📋 Result Blocks',
+            content: `<table data-result-block="signatures" data-result-protected="true" style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:10px;">
+  <tr>
+    <td style="padding:8px 12px;text-align:center;border:1px solid #ddd;width:33%;">
+      <div style="border-bottom:1px solid #333;height:40px;margin-bottom:6px;"></div>
+      <div style="font-weight:700;">Class Teacher</div>
+      <div style="color:#555;margin-top:2px;">{{teacher_name}}</div>
+    </td>
+    <td style="padding:8px 12px;text-align:center;border:1px solid #ddd;width:33%;">
+      <div style="border-bottom:1px solid #333;height:40px;margin-bottom:6px;"></div>
+      <div style="font-weight:700;">Head Teacher / Principal</div>
+    </td>
+    <td style="padding:8px 12px;text-align:center;border:1px solid #ddd;width:33%;">
+      <div style="border-bottom:1px solid #333;height:40px;margin-bottom:6px;"></div>
+      <div style="font-weight:700;">Parent / Guardian</div>
+    </td>
+  </tr>
+</table>`
+        },
+        {
+            id: 'result-next-term',
+            label: '📆 Next Term Info',
+            category: '📋 Result Blocks',
+            content: `<div data-result-block="next-term" data-result-protected="true" style="border:1px solid #bbb;border-radius:4px;padding:10px 14px;background:#fffbeb;margin-bottom:12px;font-size:11px;">
+  <span style="font-weight:700;color:#92400e;">Next Term Begins:</span>
+  <span style="margin-left:8px;color:#78350f;">{{next_term_date}}</span>
+  &nbsp;&nbsp;&nbsp;
+  <span style="font-weight:700;color:#92400e;">Date Issued:</span>
+  <span style="margin-left:8px;color:#78350f;">{{date_issued}}</span>
+</div>`
+        },
+        {
+            id: 'result-grading-key',
+            label: '🔑 Grading Key',
+            category: '📋 Result Blocks',
+            content: `<table data-result-block="grading-key" data-result-protected="true" style="width:100%;border-collapse:collapse;font-size:9px;margin-bottom:12px;">
+  <tr style="background:#1a2447;color:#fff;">
+    <td style="padding:4px 8px;font-weight:700;">Grade</td><td style="padding:4px 8px;font-weight:700;">Score</td><td style="padding:4px 8px;font-weight:700;">Remark</td>
+    <td style="padding:4px 8px;font-weight:700;">Grade</td><td style="padding:4px 8px;font-weight:700;">Score</td><td style="padding:4px 8px;font-weight:700;">Remark</td>
+  </tr>
+  <tr>
+    <td style="padding:3px 8px;border:1px solid #ddd;font-weight:700;color:#0b6623;">A1</td><td style="padding:3px 8px;border:1px solid #ddd;">75–100</td><td style="padding:3px 8px;border:1px solid #ddd;">Excellent</td>
+    <td style="padding:3px 8px;border:1px solid #ddd;font-weight:700;color:#8a6f00;">C5</td><td style="padding:3px 8px;border:1px solid #ddd;">45–49</td><td style="padding:3px 8px;border:1px solid #ddd;">Credit</td>
+  </tr>
+  <tr>
+    <td style="padding:3px 8px;border:1px solid #ddd;font-weight:700;color:#1a5c1a;">B2</td><td style="padding:3px 8px;border:1px solid #ddd;">70–74</td><td style="padding:3px 8px;border:1px solid #ddd;">Very Good</td>
+    <td style="padding:3px 8px;border:1px solid #ddd;font-weight:700;color:#b45309;">C6</td><td style="padding:3px 8px;border:1px solid #ddd;">40–44</td><td style="padding:3px 8px;border:1px solid #ddd;">Credit</td>
+  </tr>
+  <tr>
+    <td style="padding:3px 8px;border:1px solid #ddd;font-weight:700;color:#2563eb;">B3</td><td style="padding:3px 8px;border:1px solid #ddd;">65–69</td><td style="padding:3px 8px;border:1px solid #ddd;">Good</td>
+    <td style="padding:3px 8px;border:1px solid #ddd;font-weight:700;color:#b30000;">F9</td><td style="padding:3px 8px;border:1px solid #ddd;">0–39</td><td style="padding:3px 8px;border:1px solid #ddd;">Fail</td>
+  </tr>
+</table>`
+        },
+        {
+            id: 'result-custom-table',
+            label: '🔲 Custom Table',
+            category: '📋 Result Blocks',
+            content: {
+                type: 'result-table',
+                components: `
+  <tr>
+    <td style="padding:5px 8px;border:1px solid #ccc;font-size:10px;font-weight:700;background:#1a2447;color:#fff;">Header 1</td>
+    <td style="padding:5px 8px;border:1px solid #ccc;font-size:10px;font-weight:700;background:#1a2447;color:#fff;">Header 2</td>
+    <td style="padding:5px 8px;border:1px solid #ccc;font-size:10px;font-weight:700;background:#1a2447;color:#fff;">Header 3</td>
+  </tr>
+  <tr>
+    <td style="padding:5px 8px;border:1px solid #ccc;font-size:10px;">&nbsp;</td>
+    <td style="padding:5px 8px;border:1px solid #ccc;font-size:10px;">&nbsp;</td>
+    <td style="padding:5px 8px;border:1px solid #ccc;font-size:10px;">&nbsp;</td>
+  </tr>
+  <tr>
+    <td style="padding:5px 8px;border:1px solid #ccc;font-size:10px;">&nbsp;</td>
+    <td style="padding:5px 8px;border:1px solid #ccc;font-size:10px;">&nbsp;</td>
+    <td style="padding:5px 8px;border:1px solid #ccc;font-size:10px;">&nbsp;</td>
+  </tr>`
+            }
+        },
+        {
+            id: 'result-line-box',
+            label: '📝 Line Box',
+            category: '📋 Result Blocks',
+            content: '<div data-result-type="line-box" data-result-protected="true" style="width:100%;padding:6px 0;margin-bottom:12px;"></div>'
+        },
+        {
+            id: 'result-variable',
+            label: '🔤 Result Variable',
+            category: '📋 Result Blocks',
+            content: '<span data-result-protected="true" data-result-variable="{{school_name}}" style="display:inline-block;">{{school_name}}</span>'
+        },
+    ];
+
+    blocks.forEach(function(b) {
+        editor.BlockManager.add(b.id, { label: b.label, category: b.category, content: b.content });
+    });
+
+    // ── STRIDE flexibility add-on: protect official blocks, expose only
+    //    approved appearance controls in the Style Manager, wire Line Box /
+    //    Result Variable traits. Runs after every project load and selection.
+    installResultBuilderFlexibility(editor, { variables: BUILDER.variables || {} });
+
+    // ── Load saved JSON — prefer a newer local draft if one was left behind ───
+    var localDraft = null;
+    try {
+        var raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) localDraft = JSON.parse(raw);
+    } catch (e) { localDraft = null; }
+
+    var restoredFromDraft = false;
+    if (localDraft && localDraft.project && confirm(
+        'An unsaved draft of this template was found from ' + new Date(localDraft.savedAt).toLocaleString() +
+        ' (likely left over from a lost connection or expired session). Restore it?'
+    )) {
+        try {
+            editor.loadProjectData(localDraft.project);
+            if (localDraft.name) document.getElementById('tpl-name').value = localDraft.name;
+            restoredFromDraft = true;
+        } catch (e) { restoredFromDraft = false; }
+    }
+
+    if (!restoredFromDraft) {
+        if (BUILDER.hasData && BUILDER.grapesJson) {
+            try {
+                editor.loadProjectData(JSON.parse(BUILDER.grapesJson));
+            } catch (e) {
+                editor.setComponents('<p style="padding:40px;color:#aaa;text-align:center;">Could not load template data.</p>');
+            }
+        } else {
+            editor.setComponents(`<div style="padding:40px;text-align:center;color:#aaa;font-size:14px;font-family:sans-serif;">
+  <p style="font-size:20px;">👈 Drag blocks from the left panel to build your result sheet</p>
+  <p style="margin-top:10px;">Start with <strong>School Header</strong> → <strong>Student Info</strong> → <strong>Scores Table</strong></p>
+</div>`);
+        }
+    }
+
+    // Track changes only after the initial load settles, so restoring/loading
+    // existing data doesn't itself get flagged as an unsaved change.
+    setTimeout(function () {
+        editor.on('update', scheduleDraftBackup);
+        if (restoredFromDraft) {
+            dirty = true;
+            setStatus('Restored unsaved draft — remember to save', 'error');
+        }
+    }, 0);
+})();
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+function setStatus(msg, type) {
+    var el = document.getElementById('status-msg');
+    el.textContent = msg;
+    el.className = type || '';
+}
+
+function saveTemplate() {
+    if (!editor) return;
+    var btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    setStatus('Saving…', '');
+
+    var payload = {
+        name:        document.getElementById('tpl-name').value || 'Untitled Template',
+        json:        JSON.stringify(editor.getProjectData()),
+        html:        editor.getHtml(),
+        css:         editor.getCss(),
+        paper_size:  document.getElementById('paper-size').value,
+        orientation: document.getElementById('orientation').value,
+        template_id: BUILDER.templateId,
+        school_id:   BUILDER.schoolId,
+    };
+
+    fetch(BUILDER.saveUrl, {
+        method:  'POST',
+        headers: {
+            'Content-Type':     'application/json',
+            'X-CSRF-TOKEN':     BUILDER.csrfToken,
+            'Accept':           'application/json',
+        },
+        body: JSON.stringify(payload),
+    })
+    .then(function(r) {
+        if (r.status === 419) {
+            throw new Error('Session expired — your work is safely backed up locally. Reload the page and log in again, then save once more.');
+        }
+        return r.json().then(function(data) {
+            if (!r.ok) {
+                throw new Error(data.message || data.error || ('Server error (' + r.status + ')'));
+            }
+            return data;
+        });
+    })
+    .then(function(data) {
+        BUILDER.templateId = data.template_id;
+        DRAFT_KEY = 'resulttpl_draft_' + BUILDER.templateId;
+        dirty = false;
+        clearLocalDraft();
+        setStatus('Saved ✓', 'saved');
+    })
+    .catch(function(e) {
+        // Keep the local draft (and `dirty`) intact — nothing is lost, save just needs a retry.
+        saveDraftLocally();
+        setStatus('Save failed: ' + e.message, 'error');
+    })
+    .finally(function() {
+        btn.disabled = false;
+        btn.textContent = 'Save Template';
+    });
+}
+
+// ── Variables panel ───────────────────────────────────────────────────────────
+function toggleVars() {
+    var panel = document.getElementById('vars-panel');
+    panel.classList.toggle('open');
+}
+
+function copyVar(varName) {
+    navigator.clipboard.writeText(varName).then(function() {
+        var hint = document.getElementById('copy-hint');
+        hint.style.display = 'inline';
+        setTimeout(function() { hint.style.display = 'none'; }, 1500);
+    }).catch(function() {});
+}
+
+// ── Auto-save on Ctrl/Cmd + S ─────────────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveTemplate();
+    }
+});
+</script>
+
+<script>
+// ── Preview rendered result (standalone only) ───────────────────────────────
+// Uses the same splitting/formatting rules the PHP backend applies at print
+// time (window.resultBuilderRender mirrors ResultVariableFormatting).
+function previewRendered() {
+    if (!editor) return;
+    var doc = new DOMParser().parseFromString(
+        '<html><head></head><body>' + editor.getHtml() + '</body></html>', 'text/html');
+    var samples = BUILDER.sampleValues || {};
+    var root = doc.body;
+
+    function sampleFor(key) {
+        var k = String(key).trim();
+        if (k.indexOf('{{') !== 0) k = '{{' + k + '}}';
+        return Object.prototype.hasOwnProperty.call(samples, k) ? samples[k] : '';
+    }
+
+    var els = root.querySelectorAll('[data-result-variable]');
+    for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        var attrs = {};
+        for (var j = 0; j < el.attributes.length; j++) {
+            attrs[el.attributes[j].name] = el.attributes[j].value;
+        }
+        var value = sampleFor(attrs['data-result-variable'] || '');
+        if (value === '') value = '';
+        if (attrs['data-lines'] && value !== '') {
+            el.innerHTML = resultBuilderRender.formatVariableHtml(value, attrs);
+        } else {
+            el.innerHTML = resultBuilderRender.escapeHtml(value);
+        }
+    }
+
+    var walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (var n = 0; n < nodes.length; n++) {
+        var node = nodes[n];
+        var text = node.nodeValue;
+        if (!/\{\{[A-Za-z0-9_]+\}\}/.test(text)) continue;
+        var onlyPlaceholder = /^\s*\{\{[A-Za-z0-9_]+\}\}\s*$/.test(text);
+        var sample = sampleFor(text.trim());
+        if (onlyPlaceholder && sample.indexOf('<') === 0) {
+            var frag = doc.createRange().createContextualFragment(sample);
+            node.parentNode.replaceChild(frag, node);
+        } else {
+            node.nodeValue = text.replace(/\{\{[A-Za-z0-9_]+\}\}/g, function (k) {
+                return sampleFor(k);
+            });
+        }
+    }
+
+    var w = window.open('', '_blank');
+    if (!w) {
+        alert('Pop-up blocked — allow pop-ups to preview the rendered result.');
+        return;
+    }
+    w.document.open();
+    w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'
+        + '<style>html,body{margin:0;padding:0;background:#e5e7eb;}'
+        + 'body{width:794px;margin:0 auto;background:#fff;min-height:1123px;padding:24px 28px;'
+        + 'box-sizing:border-box;font-family:DejaVu Sans,Arial,sans-serif;font-size:10px;color:#1a1a1a;}'
+        + '.grade-key{border:1px solid #ddd;padding:8px 10px;margin-bottom:12px;}'
+        + '.grade-key-title{font-size:8px;font-weight:700;color:#555;text-transform:uppercase;margin-bottom:6px;}'
+        + '.grade-key-row{display:table;width:100%;}.grade-key-cell{display:table-cell;text-align:center;font-size:8px;padding:2px 4px;}'
+        + '</style><style>' + editor.getCss() + '</style></head><body>' + doc.body.innerHTML + '</body></html>');
+    w.document.close();
+}
+</script>
+
+</body>
+</html>
